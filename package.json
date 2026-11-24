@@ -1,0 +1,20 @@
+{
+  "name": "antwortprofi",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Professionelle Antworten auf Google-Bewertungen per Klick, mit Claude.",
+  "scripts": {
+    "start": "node server.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test"
+  },
+  "engines": { "node": ">=22.18" },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.9.0"
+  }
+}

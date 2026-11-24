@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AntwortProfi</title>
+<meta name="description" content="Professionelle Antworten auf Google-Bewertungen in Sekunden.">
+<style>
+  :root {
+    --bg: #f6f5f2; --card: #ffffff; --text: #1d1d1b; --muted: #6b6a66;
+    --line: #e3e1dc; --accent: #1f6f5c; --accent-text: #ffffff; --error: #b3261e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161615; --card: #1f1f1d; --text: #ecebe7; --muted: #a09e98;
+      --line: #34332f; --accent: #4fb89c; --accent-text: #0d1f1a; --error: #f2948d;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 720px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 1.75rem; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .lead { color: var(--muted); margin: 0 0 24px; }
+  form, .result { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+  label { display: block; font-weight: 600; font-size: .9rem; margin: 14px 0 6px; }
+  label:first-child { margin-top: 0; }
+  input, select, textarea { width: 100%; padding: 10px 12px; font: inherit; color: var(--text);
+    background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
+  textarea { min-height: 130px; resize: vertical; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 520px) { .row { grid-template-columns: 1fr; } }
+  .stars { display: flex; gap: 4px; }
+  .stars button { flex: 1; padding: 8px 0; font-size: 1.1rem; background: var(--bg);
+    border: 1px solid var(--line); border-radius: 8px; cursor: pointer; color: var(--muted); }
+  .stars button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  .submit { margin-top: 20px; width: 100%; padding: 12px; font: inherit; font-weight: 600;
+    background: var(--accent); color: var(--accent-text); border: 0; border-radius: 8px; cursor: pointer; }
+  .submit:disabled { opacity: .6; cursor: wait; }
+  .error { color: var(--error); margin-top: 12px; }
+  .result { margin-top: 20px; }
+  .reply { border-top: 1px solid var(--line); padding: 14px 0; white-space: pre-wrap; }
+  .reply:first-of-type { border-top: 0; padding-top: 0; }
+  .copy { margin-top: 8px; padding: 6px 12px; font: inherit; font-size: .85rem; cursor: pointer;
+    background: transparent; color: var(--accent); border: 1px solid var(--accent); border-radius: 6px; }
+  .hidden { display: none; }
+  footer { color: var(--muted); font-size: .85rem; margin-top: 32px; text-align: center; }
+</style>
+</head>
+<body>
+<main>
+  <h1>AntwortProfi</h1>
+  <p class="lead">Bewertung einfügen, Ton wählen: drei fertige Antworten in Sekunden.</p>
+
+  <form id="f">
+    <div id="codeWrap" class="hidden">
+      <label for="code">Zugangscode</label>
+      <input id="code" autocomplete="off">
+    </div>
+    <div class="row">
+      <div>
+        <label for="businessName">Name des Betriebs</label>
+        <input id="businessName" required maxlength="120" placeholder="Café Sonne">
+      </div>
+      <div>
+        <label for="businessType">Branche</label>
+        <input id="businessType" required maxlength="80" placeholder="Café, Friseur, Zahnarzt …">
+      </div>
+    </div>
+    <label>Sterne</label>
+    <div class="stars" id="stars"></div>
+    <label for="review">Bewertung des Kunden</label>
+    <textarea id="review" required maxlength="4000" placeholder="Text der Google-Bewertung hier einfügen"></textarea>
+    <div class="row">
+      <div>
+        <label for="tone">Ton</label>
+        <select id="tone">
+          <option value="freundlich">Freundlich</option>
+          <option value="professionell">Professionell</option>
+          <option value="herzlich">Herzlich</option>
+          <option value="kurz">Kurz</option>
+        </select>
+      </div>
+      <div>
+        <label for="signature">Unterschrift (optional)</label>
+        <input id="signature" maxlength="120" placeholder="Ihr Team vom Café Sonne">
+      </div>
+    </div>
+    <button class="submit" id="go" type="submit">Antworten erstellen</button>
+    <p class="error" id="err" role="alert"></p>
+  </form>
+
+  <section class="result hidden" id="result" aria-live="polite"></section>
+  <footer>Antworten vor dem Veröffentlichen kurz prüfen.</footer>
+</main>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const store = {
+    get(k) { try { return localStorage.getItem(k) || ""; } catch { return ""; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+  };
+  let rating = 5;
+  for (let i = 1; i <= 5; i++) {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = i + "★"; b.dataset.v = i;
+    b.onclick = () => { rating = i; paint(); };
+    $("stars").append(b);
+  }
+  const paint = () => [...$("stars").children].forEach((b) =>
+    b.setAttribute("aria-pressed", String(Number(b.dataset.v) === rating)));
+  paint();
+
+  for (const k of ["businessName", "businessType", "signature", "tone", "code"]) {
+    const v = store.get("ap_" + k); if (v) $(k).value = v;
+  }
+  fetch("/api/config").then((r) => r.json()).then((c) => {
+    if (c.needsCode) { $("codeWrap").classList.remove("hidden"); $("code").required = true; }
+  }).catch(() => {});
+
+  $("f").onsubmit = async (e) => {
+    e.preventDefault();
+    $("err").textContent = "";
+    $("go").disabled = true; $("go").textContent = "Schreibe Antworten …";
+    for (const k of ["businessName", "businessType", "signature", "tone", "code"]) store.set("ap_" + k, $(k).value);
+    try {
+      const res = await fetch("/api/reply", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-access-code": $("code").value },
+        body: JSON.stringify({
+          review: $("review").value, rating, tone: $("tone").value,
+          businessName: $("businessName").value, businessType: $("businessType").value,
+          signature: $("signature").value,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Fehler");
+      const out = $("result"); out.replaceChildren(); out.classList.remove("hidden");
+      data.replies.forEach((text, i) => {
+        const d = document.createElement("div"); d.className = "reply";
+        const p = document.createElement("div"); p.textContent = text;
+        const c = document.createElement("button"); c.className = "copy"; c.type = "button";
+        c.textContent = "Variante " + (i + 1) + " kopieren";
+        c.onclick = async () => {
+          try { await navigator.clipboard.writeText(text); c.textContent = "Kopiert ✓"; }
+          catch { c.textContent = "Bitte manuell markieren"; }
+        };
+        d.append(p, c); out.append(d);
+      });
+      out.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (err) {
+      $("err").textContent = err.message;
+    } finally {
+      $("go").disabled = false; $("go").textContent = "Antworten erstellen";
+    }
+  };
+</script>
+</body>
+</html>
