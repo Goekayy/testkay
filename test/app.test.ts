@@ -56,7 +56,8 @@ test("returns three replies and sends structured-output request", async () => {
   assert.equal(r.status, 200);
   assert.deepEqual(r.json.replies, ["A", "B", "C"]);
   assert.equal(seen[0].output_config.format.type, "json_schema");
-  assert.equal(seen[0].fallbacks, "default");
+  assert.equal(seen[0].model, "claude-haiku-5-5");
+  assert.equal(seen[0].fallbacks, undefined);
 });
 
 test("access code is enforced when configured", async () => {

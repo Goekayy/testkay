@@ -1,0 +1,18 @@
+# Ein-Klick-Deployment auf Render (render.com): "New > Blueprint" und dieses Repo wählen.
+services:
+  - type: web
+    name: antwortprofi
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: node server.ts
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 22.23.0
+      - key: CLAUDE_MODEL
+        value: claude-haiku-5-5
+      - key: ANTHROPIC_API_KEY
+        sync: false   # wird im Render-Dashboard eingetragen, nie ins Repo
+      - key: ACCESS_CODES
+        sync: false

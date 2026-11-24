@@ -1,6 +1,13 @@
 import Anthropic from "@anthropic-ai/sdk";
 
-export const MODEL = process.env.CLAUDE_MODEL || "claude-opus-5-5";
+// Standard: Claude Haiku 5.5, sehr günstig. Für mehr Qualität z. B. claude-opus-5-5 setzen.
+export const MODEL = process.env.CLAUDE_MODEL || "claude-haiku-5-5";
+
+// Haiku hat keinen serverseitigen Fallback; die größeren Modelle schon.
+function fallbackParams() {
+  if (MODEL.startsWith("claude-haiku")) return {};
+  return { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const };
+}
 
 export type Tone = "freundlich" | "professionell" | "herzlich" | "kurz";
 
@@ -87,10 +94,8 @@ export async function generateReplies(client: MessagesClient, r: ReplyRequest): 
     system: SYSTEM,
     messages: [{ role: "user", content: buildUserMessage(r) }],
     output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA } },
-    // Bei einer (seltenen) Ablehnung durch die Sicherheitsfilter springt
-    // serverseitig automatisch ein anderes Modell ein.
-    betas: ["server-side-fallback-2026-07-01"],
-    fallbacks: "default",
+    // Bei einer (seltenen) Ablehnung springt bei großen Modellen serverseitig ein anderes ein.
+    ...fallbackParams(),
   });
 
   if (response.stop_reason === "refusal") {
